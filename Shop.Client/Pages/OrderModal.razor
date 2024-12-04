@@ -1,0 +1,83 @@
+﻿@using Shop.Shared
+@inject HttpClient Http
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject NavigationManager Navigation
+
+<div class="modal @(IsOpen ? "show d-block" : "d-none")" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Purchase Product</h5>
+                <button type="button" class="btn-close" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Quantity</label>
+                        <input type="number" id="quantity" class="form-control" @bind="quantity" min="1" max="@MaxQuantity" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="payment" class="form-label">Payment Method</label>
+                        <select id="payment" class="form-select">
+                            <option value="paypal">PayPal</option>
+                            <option value="credit_card">Credit Card</option>
+                        </select>
+                    </div>
+                </form>
+                <p class="text-muted">Total Price: $@(quantity * price)</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                <button class="btn btn-primary" @onclick="SubmitOrder">Place Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public Product Product { get; set; } = null!;
+    private int quantity = 1;
+    private decimal price => Product.price;
+    private int MaxQuantity => Product.quantity;
+
+    private async Task SubmitOrder()
+    {
+        var buyerName = await LocalStorage.GetItemAsync<string>("Username");
+
+        var order = new Order
+            {
+                product_id = Product.id,
+                product_name = Product.name,
+                product_game = Product.game,
+                product_category = Product.category,
+                buyer_name = buyerName,
+                seller_name = Product.created_by!,
+                price = Product.price,
+                quantity = quantity
+            };
+
+        var response = await Http.PostAsJsonAsync("api/orders", order);
+        if (response.IsSuccessStatusCode)
+        {
+            var createdOrder = await response.Content.ReadFromJsonAsync<Order>();
+            if (createdOrder != null)
+            {
+                CloseModal();
+                Navigation.NavigateTo($"/order/{createdOrder.id}");
+            }
+        }
+    }
+
+
+    private async Task CloseModal()
+    {
+        IsOpen = false;
+        await OnClose.InvokeAsync(false);
+    }
+}

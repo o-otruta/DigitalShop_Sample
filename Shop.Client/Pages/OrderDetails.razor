@@ -1,0 +1,37 @@
+﻿@page "/order/{id:int}"
+@using Shop.Shared
+@inject HttpClient Http
+
+<h3>Order Details</h3>
+
+@if (order == null)
+{
+    <p>Loading order details...</p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">@order.product_name</h5>
+            <p class="card-text"><strong>Game:</strong> @order.product_game</p>
+            <p class="card-text"><strong>Category:</strong> @order.product_category</p>
+            <p class="card-text"><strong>Price:</strong> $@order.price</p>
+            <p class="card-text"><strong>Quantity:</strong> @order.quantity</p>
+            <p class="card-text"><strong>Buyer:</strong> @order.buyer_name</p>
+            <p class="card-text"><strong>Seller:</strong> @order.seller_name</p>
+            <p class="card-text"><strong>Date:</strong> @order.created_at</p>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+
+    private Order? order;
+
+    protected override async Task OnInitializedAsync()
+    {
+        order = await Http.GetFromJsonAsync<Order>($"api/orders/{id}");
+    }
+}

@@ -1,0 +1,135 @@
+﻿@page "/profile"
+@using Shop.Shared
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<h3>Profile</h3>
+
+@if (isLoggedIn)
+{
+    <p>Welcome, @LoggedInUser!</p>
+
+    <div class="d-flex justify-content-between mt-3 mb-3">
+        <span class="fs-5 fw-bold text-capitalize">Your Products</span>
+        <button @onclick="OpenAddProductModal" class="btn btn-primary">Add New Product</button>
+    </div>
+
+    <div class="row">
+        @if (userProducts != null && userProducts.Any())
+        {
+            @foreach (var product in userProducts)
+            {
+                <ProductCard Product="@product" />
+            }
+        }
+        else
+        {
+            <p>No products found.</p>
+        }
+    </div>
+
+    @if (showAddProductModal)
+    {
+        <AddProductModal NewProduct="newProduct"
+                         AvailableGames="availableGames"
+                         AvailableCategories="availableCategories"
+                         OnClose="CloseAddProductModal"
+                         OnSave="AddProduct" />
+    }
+}
+else
+{
+    <AuthModal OnLoginSuccess="HandleLoginSuccess" />
+}
+
+@code {
+    private bool isLoggedIn = false;
+    private string LoggedInUser = string.Empty;
+    private List<Product>? userProducts = null;
+    private bool showAddProductModal = false;
+
+    private List<Product> availableGames = new();
+    private List<string> availableCategories = new();
+    private Product newProduct = new Product();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await LocalStorage.GetItemAsync<string>("authToken");
+
+        if (string.IsNullOrEmpty(token))
+        {
+            isLoggedIn = false;
+        }
+        else
+        {
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            var response = await Http.GetAsync("api/protected");
+
+            if (response.IsSuccessStatusCode)
+            {
+                LoggedInUser = await LocalStorage.GetItemAsync<string>("Username");
+                isLoggedIn = true;
+
+                var productsResponse = await Http.GetFromJsonAsync<List<Product>>("api/products/my-products");
+
+                if (productsResponse != null)
+                {
+                    userProducts = productsResponse;
+                }
+            }
+            else
+            {
+                isLoggedIn = false;
+            }
+        }
+
+        availableGames = await Http.GetFromJsonAsync<List<Product>>("api/products/available-games");
+        availableCategories = await Http.GetFromJsonAsync<List<string>>("api/products/available-categories");
+    }
+
+    private async Task HandleLoginSuccess()
+    {
+        LoggedInUser = await LocalStorage.GetItemAsync<string>("Username");
+        isLoggedIn = true;
+        StateHasChanged();
+    }
+
+    private void OpenAddProductModal()
+    {
+        showAddProductModal = true;
+        newProduct = new Product
+        {
+            price = 1,
+            quantity = 1,
+            game = availableGames.FirstOrDefault()?.game,
+            game_key = availableGames.FirstOrDefault()?.game_key,
+            category = availableCategories.FirstOrDefault()
+        };
+    }
+
+    private void CloseAddProductModal()
+    {
+        showAddProductModal = false;
+    }
+
+    private async Task AddProduct()
+    {
+        newProduct.game = availableGames.FirstOrDefault(g => g.game_key == newProduct.game_key)?.game;
+
+        var response = await Http.PostAsJsonAsync("api/products", newProduct);
+
+        if (response.IsSuccessStatusCode)
+        {
+            userProducts = await Http.GetFromJsonAsync<List<Product>>("api/products/my-products");
+
+            CloseAddProductModal();
+        }
+        else
+        {
+            Console.WriteLine($"Error adding product: {response.StatusCode}");
+        }
+    }
+
+}

@@ -1,0 +1,48 @@
+﻿@page "/sales-history"
+@using Shop.Shared
+@inject HttpClient Http
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+
+<h3>Sales History</h3>
+
+@if (sales == null)
+{
+    <p>Loading your sales history...</p>
+}
+else if (!sales.Any())
+{
+    <p>No sales found.</p>
+}
+else
+{
+    <div class="row">
+        @foreach (var sale in sales)
+        {
+            <div class="col-12 p-2">
+                <a href="/order/@sale.id" class="card" style="color: #000; text-decoration: none;">
+                    <div class="card-body d-flex gap-2">
+                        <strong class="card-text flex-fill">@sale.product_name</strong>
+                        <span class="card-text flex-fill text-capitalize"><strong> Category:</strong>@sale.product_game @sale.product_category</span>
+                        <span class="card-text flex-fill"><strong>Price:</strong> $@sale.price</span>
+                        <span class="card-text flex-fill"><strong>Date:</strong> @sale.created_at</span>
+                    </div>
+                </a>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Order>? sales;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await LocalStorage.GetItemAsync<string>("authToken");
+        if (!string.IsNullOrEmpty(token))
+        {
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+
+        sales = await Http.GetFromJsonAsync<List<Order>>("api/orders/my-sales");
+    }
+}

@@ -1,0 +1,165 @@
+﻿@using Blazored.LocalStorage
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ILocalStorageService LocalStorage
+
+<div>
+    @if (showModal)
+    {
+        <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">@modalTitle</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-danger" role="alert" style="display: @(string.IsNullOrEmpty(ErrorMessage) ? "none" : "block");">
+                            @ErrorMessage
+                            @SuccessMessage
+                        </div>
+
+                        @if (isRegistering)
+                        {
+                            <form>
+                                <div class="mb-3">
+                                    <label for="registerUsername" class="form-label">Username</label>
+                                    <input id="registerUsername" class="form-control" @bind="RegisterUsername" />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="registerPassword" class="form-label">Password</label>
+                                    <input id="registerPassword" type="password" class="form-control" @bind="RegisterPassword" />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="registerConfirmPassword" class="form-label">Confirm Password</label>
+                                    <input id="registerConfirmPassword" type="password" class="form-control" @bind="RegisterConfirmPassword" />
+                                </div>
+                                <button type="button" class="btn btn-primary" @onclick="Register">Register</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form>
+                                <div class="mb-3">
+                                    <label for="loginUsername" class="form-label">Username</label>
+                                    <input id="loginUsername" class="form-control" @bind="LoginUsername" />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="loginPassword" class="form-label">Password</label>
+                                    <input id="loginPassword" type="password" class="form-control" @bind="LoginPassword" />
+                                </div>
+                                <button type="button" class="btn btn-primary" @onclick="Login">Login</button>
+                            </form>
+                        }
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="ToggleAuthMode">
+                            @if (isRegistering)
+                            {
+                                <span>Switch to Login</span>
+                            }
+                            else
+                            {
+                                <span>Switch to Register</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <button class="btn btn-primary" @onclick="ShowModal">Login / Sign up</button>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnLoginSuccess { get; set; }
+
+    private bool showModal = false;
+    private bool isRegistering = false;
+    private string modalTitle => isRegistering ? "Register" : "Login";
+
+    private string LoginUsername = string.Empty;
+    private string LoginPassword = string.Empty;
+
+    private string RegisterUsername = string.Empty;
+    private string RegisterPassword = string.Empty;
+    private string RegisterConfirmPassword = string.Empty;
+
+    private string? SuccessMessage { get; set; }
+    private string? ErrorMessage { get; set; }
+
+    private void ShowModal() => showModal = true;
+
+    private void CloseModal() => showModal = false;
+
+    private void ToggleAuthMode()
+    {
+        isRegistering = !isRegistering;
+    }
+
+    private async Task Login()
+    {
+        var response = await Http.PostAsJsonAsync("api/auth/login", new { Username = LoginUsername, PasswordHash = LoginPassword });
+
+        if (response.IsSuccessStatusCode)
+        {
+            var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+            if (result != null)
+            {
+                await LocalStorage.SetItemAsync("authToken", result.Token);
+                await LocalStorage.SetItemAsync("Username", LoginUsername);
+                await LocalStorage.SetItemAsync("Role", result.Role);
+
+                if (OnLoginSuccess.HasDelegate)
+                {
+                    await OnLoginSuccess.InvokeAsync();
+                }
+
+                CloseModal();
+
+                Navigation.NavigateTo("/profile", forceLoad: true);
+            }
+        }
+        else
+        {
+            Console.WriteLine("Invalid username or password");
+            ErrorMessage = "Invalid username or password";
+        }
+    }
+
+    private async Task Register()
+    {
+        if (RegisterPassword != RegisterConfirmPassword)
+        {
+            Console.WriteLine("Passwords do not match");
+            ErrorMessage = "Passwords do not match";
+            return;
+        }
+
+        var response = await Http.PostAsJsonAsync("api/auth/register", new { Username = RegisterUsername, PasswordHash = RegisterPassword });
+
+        if (response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Registration successful");
+            ErrorMessage = null;
+            SuccessMessage = "Registration successful";
+            ToggleAuthMode();
+        }
+        else
+        {
+            Console.WriteLine("Registration failed");
+            ErrorMessage = "Registration failed";
+        }
+    }
+
+    private class LoginResponse
+    {
+        public string Token { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+    }
+}

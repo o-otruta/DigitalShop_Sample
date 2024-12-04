@@ -1,0 +1,57 @@
+﻿@using Shop.Shared
+
+<div class="col-xs-12 col-sm-6 col-md-3 p-2" style="max-height: 250px;">
+    <a href="/product/@Product.id" class="card h-100 w-100" style="color: #000; text-decoration: none;">
+        <div class="card-body">
+            <h5 class="card-title line-clamp-1">id:@Product.id - @Product.name</h5>
+            <p class="card-text line-clamp-1">@Product.description</p>
+            <div class="card-text"><strong>Quantity:</strong> @Product.quantity</div>
+            <div class="card-text text-capitalize">@Product.game @Product.category</div>
+            <div class="row" style="bottom: 0;">
+                
+                <div class="card-text col-8"><strong>Created by:</strong> @Product.created_by</div>
+                <div class="card-text text-end col-4">@Product.price</div>
+            </div>
+
+        </div>
+    </a>
+</div>
+
+
+<style>
+    .card-img-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 45px;
+        width: 100%;
+        background-size: cover;
+        background-position: center;
+        z-index: 1;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .card-body {
+        position: relative;
+        z-index: 2;
+        background-color: rgba(255, 255, 255, 0.5);
+        border-radius: inherit;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public Product Product { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<int> OnDelete { get; set; }
+
+    private async Task DeleteProduct()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync(Product.id);
+        }
+    }
+}

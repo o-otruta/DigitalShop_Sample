@@ -1,0 +1,82 @@
+﻿@using Blazored.LocalStorage
+@using Shop.Client.Pages
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager Navigation
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="">Shop.Client</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">Home</NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="products/csgo">CS:GO</NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="products/dota-2">Dota 2</NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="products/teso">TESO</NavLink>
+                </li>
+            </ul>
+        </div>
+
+
+        <div class="d-flex align-items-center">
+            @if (isLoggedIn)
+            {
+                <div class="dropdown">
+                    <button class="btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        @LoggedInUser
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><NavLink class="dropdown-item" href="profile">Profile</NavLink></li>
+                        <li><NavLink class="dropdown-item" href="purchase-history">Purchase History</NavLink></li>
+                        <li><NavLink class="dropdown-item" href="sales-history">Sales History</NavLink></li>
+                        <li><button class="dropdown-item" @onclick="Logout">Logout</button></li>
+                    </ul>
+                </div>
+            }
+            else
+            {
+                <AuthModal />
+            }
+        </div>
+    </div>
+</nav>
+
+<style>
+    .navbar .nav-item:first-of-type {
+        padding-top: 0; /* SCCS Fix */
+    }
+</style>
+
+@code {
+    private bool isLoggedIn = false;
+    private string LoggedInUser = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await LocalStorage.GetItemAsync<string>("authToken");
+        if (!string.IsNullOrEmpty(token))
+        {
+            LoggedInUser = await LocalStorage.GetItemAsync<string>("Username");
+            isLoggedIn = true;
+        }
+    }
+
+    private async Task Logout()
+    {
+        await LocalStorage.RemoveItemAsync("authToken");
+        await LocalStorage.RemoveItemAsync("Username");
+        await LocalStorage.RemoveItemAsync("Role");
+        isLoggedIn = false;
+        LoggedInUser = string.Empty;
+        Navigation.NavigateTo("/");
+    }
+}

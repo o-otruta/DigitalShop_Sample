@@ -1,0 +1,243 @@
+﻿@page "/products"
+@page "/products/{game_key}"
+
+@using Shop.Shared
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+
+<div class="mb-3 flex-row text-capitalize">
+    <p class="fs-5 fw-bold">
+        @if (!string.IsNullOrEmpty(selectedGame))
+        {
+            <span>@displayedGameName</span>
+        }
+        @if (!string.IsNullOrEmpty(selectedCategory))
+        {
+            <span>&nbsp;@selectedCategory</span>
+        }
+    </p>
+</div>
+
+<div class="mb-3">
+    <label for="gameFilter" class="form-label">Filter by Game:</label>
+    <select id="gameFilter" class="form-select text-capitalize" value="@selectedGame" @onchange="FilterByGame">
+        <option value="">All Games</option>
+        @if (availableGames != null)
+        {
+            @foreach (var game in availableGames)
+            {
+                <option value="@game.game_key">@game.game</option>
+            }
+        }
+    </select>
+</div>
+
+<div class="mb-3">
+    <label for="categoryFilter" class="form-label">Filter by Category:</label>
+    <select id="categoryFilter" class="form-select text-capitalize" value="@selectedCategory" @onchange="FilterByCategory">
+        <option value="">All Categories</option>
+        @if (availableCategories != null)
+        {
+            @foreach (var category in availableCategories)
+            {
+                <option value="@category">@category</option>
+            }
+        }
+    </select>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <button class="btn @(sortOrder == "lowest_price" ? "btn-primary" : "btn-outline-secondary") me-2" @onclick="SetSortLowPrice">Price: Low to High</button>
+        <button class="btn @(sortOrder == "highest_price" ? "btn-primary" : "btn-outline-secondary") me-2" @onclick="SetSortHighPrice">Price: High to Low</button>
+        <button class="btn @(string.IsNullOrEmpty(sortOrder) ? "btn-primary" : "btn-outline-secondary")" @onclick="ClearSort">Clear Sort</button>
+    </div>
+
+    <div class="pagination-controls mt-3">
+        <button @onclick="PreviousPage" class="btn btn-secondary" disabled="@(!CanGoToPreviousPage)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-left-fill" viewBox="0 0 16 16">
+                <path d="m3.86 8.753 5.482 4.796c.646.566 1.658.106 1.658-.753V3.204a1 1 0 0 0-1.659-.753l-5.48 4.796a1 1 0 0 0 0 1.506z" />
+            </svg>
+        </button>
+        <span class="mx-2">Page @pagedResponse?.CurrentPage of @pagedResponse?.TotalPages</span>
+        <button @onclick="NextPage" class="btn btn-secondary" disabled="@(!CanGoToNextPage)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-right-fill" viewBox="0 0 16 16">
+                <path d="m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z" />
+            </svg>
+        </button>
+    </div>
+</div>
+
+
+<div class="row">
+    @if (pagedResponse?.Products != null)
+    {
+        foreach (var product in pagedResponse.Products)
+        {
+            <ProductCard Product="@product" />
+        }
+    }
+</div>
+
+
+
+
+@code {
+    [Parameter]
+    public string? game_key { get; set; }
+
+    private string? displayedGameName = null;
+    private string? selectedGame = null;
+    private string? selectedCategory = null;
+    private List<Product>? availableGames = null;
+    private List<string>? availableCategories = null;
+    //private List<Product>? products;
+    private PagedResponse<Product>? pagedResponse;
+    private int currentPage = 1;
+    private const int pageSize = 20;
+    private string? sortOrder = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await LocalStorage.GetItemAsync<string>("authToken");
+        if (!string.IsNullOrEmpty(token))
+        {
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+        
+
+        availableGames = await Http.GetFromJsonAsync<List<Product>>("api/products/available-games");
+        availableCategories = await Http.GetFromJsonAsync<List<string>>($"api/products/available-categories?game_key={game_key}");
+
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(game_key))
+        {
+            displayedGameName = await Http.GetStringAsync($"api/products/game-name/{game_key}");
+        }
+        else
+        {
+            displayedGameName = null;
+        }
+
+        selectedGame = game_key;
+
+        var uri = new Uri(Navigation.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("category", out var categoryValue))
+        {
+            selectedCategory = categoryValue;
+        }
+        else
+        {
+            selectedCategory = null;
+        }
+
+        currentPage = 1;
+        await LoadProducts();
+    }
+
+    private async Task FilterByGame(ChangeEventArgs e)
+    {
+        selectedGame = e.Value?.ToString();
+        availableCategories = await Http.GetFromJsonAsync<List<string>>($"api/products/available-categories?game_key={selectedGame}");
+        currentPage = 1;
+
+        var newUrl = "/products";
+        if (!string.IsNullOrEmpty(selectedGame))
+        {
+            newUrl += $"/{selectedGame}";
+        }
+        Navigation.NavigateTo(newUrl, forceLoad: false);
+
+        await LoadProducts();
+    }
+
+    private async Task FilterByCategory(ChangeEventArgs e)
+    {
+        selectedCategory = e.Value?.ToString();
+
+        var newUrl = "/products";
+        if (!string.IsNullOrEmpty(selectedGame))
+        {
+            newUrl += $"/{selectedGame}";
+        }
+        if (!string.IsNullOrEmpty(selectedCategory))
+        {
+            newUrl += $"?category={selectedCategory}";
+        }
+
+        currentPage = 1;
+        Navigation.NavigateTo(newUrl, forceLoad: false);
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        var url = $"api/products?page={currentPage}&pageSize={pageSize}";
+
+        if (!string.IsNullOrEmpty(selectedGame))
+        {
+            url += $"&game_key={selectedGame}";
+        }
+
+        if (!string.IsNullOrEmpty(selectedCategory))
+        {
+            url += $"&category={selectedCategory}";
+        }
+
+        if (!string.IsNullOrEmpty(sortOrder))
+        {
+            url += $"&sortOrder={sortOrder}";
+        }
+
+        pagedResponse = await Http.GetFromJsonAsync<PagedResponse<Product>>(url);
+    }
+
+    private async Task SetSortLowPrice()
+    {
+        sortOrder = "lowest_price";
+        currentPage = 1;
+        await LoadProducts();
+    }
+
+    private async Task SetSortHighPrice()
+    {
+        sortOrder = "highest_price";
+        currentPage = 1;
+        await LoadProducts();
+    }
+
+    private async Task ClearSort()
+    {
+        sortOrder = null;
+        currentPage = 1;
+        await LoadProducts();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (CanGoToPreviousPage)
+        {
+            currentPage--;
+            await LoadProducts();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (CanGoToNextPage)
+        {
+            currentPage++;
+            await LoadProducts();
+        }
+    }
+
+    private bool CanGoToPreviousPage => pagedResponse != null && currentPage > 1;
+    private bool CanGoToNextPage => pagedResponse != null && currentPage < pagedResponse.TotalPages;
+}

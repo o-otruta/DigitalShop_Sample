@@ -1,0 +1,48 @@
+﻿@page "/purchase-history"
+@using Shop.Shared
+@inject HttpClient Http
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+
+<h3>Purchase History</h3>
+
+@if (purchases == null)
+{
+    <p>Loading your purchase history...</p>
+}
+else if (!purchases.Any())
+{
+    <p>No purchases found.</p>
+}
+else
+{
+    <div class="row">
+        @foreach (var purchase in purchases)
+        {
+            <div class="col-12 p-2">
+                <a href="/order/@purchase.id" class="card" style="color: #000; text-decoration: none;">
+                    <div class="card-body d-flex gap-2">
+                        <strong class="card-text flex-fill">@purchase.product_name</strong>
+                        <span class="card-text flex-fill text-capitalize"><strong>Category:</strong> @purchase.product_game @purchase.product_category</span>
+                        <span class="card-text flex-fill"><strong>Price:</strong> $@purchase.price</span>
+                        <span class="card-text flex-fill"><strong>Date:</strong> @purchase.created_at</span>
+                    </div>
+                </a>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Order>? purchases;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await LocalStorage.GetItemAsync<string>("authToken");
+        if (!string.IsNullOrEmpty(token))
+        {
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+
+        purchases = await Http.GetFromJsonAsync<List<Order>>("api/orders/my-purchases");
+    }
+}

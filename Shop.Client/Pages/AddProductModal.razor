@@ -1,0 +1,78 @@
+﻿@using Shop.Shared
+@code {
+    [Parameter]
+    public Product NewProduct { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    [Parameter]
+    public List<Product> AvailableGames { get; set; } = new();
+
+    [Parameter]
+    public List<string> AvailableCategories { get; set; } = new();
+
+    private void HandleClose() => OnClose.InvokeAsync();
+
+    private async Task HandleSave() => await OnSave.InvokeAsync();
+}
+
+<div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Product</h5>
+                <button type="button" class="btn-close" @onclick="HandleClose"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Product Name</label>
+                        <input id="name" class="form-control" @bind="NewProduct.name" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="price" class="form-label">Price</label>
+                        <input id="price" type="number" class="form-control" @bind="NewProduct.price" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Quantity</label>
+                        <input id="quantity" type="number" class="form-control" @bind="NewProduct.quantity" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea id="description" class="form-control" @bind="NewProduct.description"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="game" class="form-label">Game</label>
+                        <select id="game" class="form-select text-capitalize" @bind="NewProduct.game_key">
+                            @foreach (var game in AvailableGames)
+                            {
+                                <option value="@game.game_key">@game.game</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select id="category" class="form-select text-capitalize" @bind="NewProduct.category">
+                            @foreach (var category in AvailableCategories)
+                            {
+                                <option value="@category">@category</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="image_url" class="form-label">Image URL</label>
+                        <input id="image_url" class="form-control" @bind="NewProduct.image_url" />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="HandleClose">Close</button>
+                <button type="button" class="btn btn-primary" @onclick="HandleSave">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
