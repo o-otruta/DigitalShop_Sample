@@ -19,8 +19,7 @@ public class ProductsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetProducts([FromQuery] string? game_key, [FromQuery] string? category, [FromQuery] int page = 1, [FromQuery] int pageSize = 12, [FromQuery] string? sortOrder = null)
     {
-        //var query = _context.Products.AsQueryable();
-        var query = _context.Products.Where(p => p.quantity > 0);
+        var query = _context.Products.AsQueryable();
 
         if (!string.IsNullOrEmpty(game_key))
         {
@@ -39,10 +38,6 @@ public class ProductsController : ControllerBase
         else if (sortOrder == "highest_price")
         {
             query = query.OrderByDescending(p => p.price);
-        }
-        else
-        {
-            query = query.OrderByDescending(p => p.created_at);
         }
 
         var totalItems = await query.CountAsync();
