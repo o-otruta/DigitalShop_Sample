@@ -46,6 +46,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// LiqPay
+builder.Services.Configure<LiqPaySettings>(builder.Configuration.GetSection("LiqPay"));
+builder.Services.AddSingleton<LiqPayClient>();
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

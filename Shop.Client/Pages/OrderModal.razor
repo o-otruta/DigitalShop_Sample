@@ -18,8 +18,8 @@
                     </div>
                     <div class="mb-3">
                         <label for="payment" class="form-label">Payment Method</label>
-                        <select id="payment" class="form-select">
-                            <option value="paypal">PayPal</option>
+                        <select id="payment" class="form-select" @bind="paymentMethod">
+                            <option value="liqpay">LiqPay</option>
                             <option value="credit_card">Credit Card</option>
                         </select>
                     </div>
@@ -43,11 +43,18 @@
     [Parameter]
     public Product Product { get; set; } = null!;
     private int quantity = 1;
+    private string paymentMethod = "liqpay";
     private decimal price => Product.price;
     private int MaxQuantity => Product.quantity;
 
     private async Task SubmitOrder()
     {
+        if (paymentMethod == "liqpay")
+        {
+            await PayWithLiqPay();
+            return;
+        }
+
         var buyerName = await LocalStorage.GetItemAsync<string>("Username");
 
         var order = new Order
@@ -74,6 +81,29 @@
         }
     }
 
+    private async Task PayWithLiqPay()
+    {
+        var buyerName = await LocalStorage.GetItemAsync<string>("Username");
+
+        var order = new Order
+            {
+                product_id = Product.id,
+                product_name = Product.name,
+                product_game = Product.game,
+                product_category = Product.category,
+                buyer_name = buyerName,
+                seller_name = Product.created_by!,
+                price = Product.price,
+                quantity = quantity
+            };
+
+        var response = await Http.PostAsJsonAsync("api/orders/liqpay-payment", order);
+        if (response.IsSuccessStatusCode)
+        {
+            var paymentUrl = await response.Content.ReadAsStringAsync();
+            Navigation.NavigateTo(paymentUrl, true);
+        }
+    }
 
     private async Task CloseModal()
     {

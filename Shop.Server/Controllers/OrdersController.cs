@@ -3,16 +3,20 @@ using Microsoft.EntityFrameworkCore;
 using Shop.Shared;
 using Shop.Server.Data;
 using Microsoft.AspNetCore.Authorization;
+using Newtonsoft.Json;
+using System.Text;
 
 [ApiController]
 [Route("api/orders")]
 public class OrdersController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly LiqPayClient _liqPayClient;
 
-    public OrdersController(AppDbContext context)
+    public OrdersController(AppDbContext context, LiqPayClient liqPayClient)
     {
         _context = context;
+        _liqPayClient = liqPayClient;
     }
 
     [HttpPost]
@@ -38,6 +42,48 @@ public class OrdersController : ControllerBase
         await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetOrderById), new { id = order.id }, order);
+    }
+
+    [HttpPost("liqpay-payment")]
+    [Authorize]
+    public async Task<IActionResult> GenerateLiqPayPayment([FromBody] Order order)
+    {
+        var product = await _context.Products.FindAsync(order.product_id);
+        if (product == null || product.quantity < order.quantity)
+        {
+            return BadRequest(new { Message = "Invalid order or insufficient stock" });
+        }
+
+        order.created_at = DateTime.UtcNow;
+        order.buyer_name = User.Identity?.Name;
+        order.seller_name = product.created_by;
+        order.product_name = product.name;
+        order.product_game = product.game;
+        order.product_category = product.category;
+
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
+
+
+        var paymentUrl = _liqPayClient.GeneratePaymentUrl(
+            amount: order.price * order.quantity,
+            currency: "USD",
+            description: $"Purchase of {order.product_name} x{order.quantity}",
+            orderId: order.id.ToString()
+        );
+
+        return Ok(paymentUrl);
+    }
+
+    [HttpPost("liqpay-callback")]
+    public async Task<IActionResult> LiqPayCallback([FromBody] object callbackData)
+    {
+        Console.WriteLine("LiqPay Callback Test:");
+        Console.WriteLine(callbackData);
+
+        // Develop create order after callback
+
+        return Ok();
     }
 
     [HttpGet("{id}")]
@@ -89,7 +135,5 @@ public class OrdersController : ControllerBase
 
         return Ok(sales);
     }
-
-
 }
 
