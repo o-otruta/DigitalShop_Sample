@@ -20,39 +20,40 @@
     </p>
 </div>
 
-<div class="mb-3">
-    <label for="gameFilter" class="form-label">Filter by Game:</label>
-    <select id="gameFilter" class="form-select text-capitalize" value="@selectedGame" @onchange="FilterByGame">
-        <option value="">All Games</option>
-        @if (availableGames != null)
-        {
-            @foreach (var game in availableGames)
+<div class="row mb-3">
+    <div class="mb-3 col-4">
+        <label for="gameFilter" class="form-label text-lowercase text-body-secondary m-0 ms-1">Select Game:</label>
+        <select id="gameFilter" class="form-select text-capitalize" value="@selectedGame" @onchange="FilterByGame">
+            <option value="">All Games</option>
+            @if (availableGames != null)
             {
-                <option value="@game.game_key">@game.game</option>
+                @foreach (var game in availableGames)
+                {
+                    <option value="@game.game_key">@game.game</option>
+                }
             }
-        }
-    </select>
-</div>
+        </select>
+    </div>
 
-<div class="mb-3">
-    <label for="categoryFilter" class="form-label">Filter by Category:</label>
-    <select id="categoryFilter" class="form-select text-capitalize" value="@selectedCategory" @onchange="FilterByCategory">
-        <option value="">All Categories</option>
-        @if (availableCategories != null)
-        {
-            @foreach (var category in availableCategories)
+    <div class="mb-3 col-4">
+        <label for="categoryFilter" class="form-label text-lowercase text-body-secondary m-0 ms-1">Select Category:</label>
+        <select id="categoryFilter" class="form-select text-capitalize" value="@selectedCategory" @onchange="FilterByCategory">
+            <option value="">All Categories</option>
+            @if (availableCategories != null)
             {
-                <option value="@category">@category</option>
+                @foreach (var category in availableCategories)
+                {
+                    <option value="@category">@category</option>
+                }
             }
-        }
-    </select>
-</div>
+        </select>
+    </div>
 
-<div class="mb-3">
-    <label for="search" class="form-label">Search Products:</label>
-    <input id="search" class="form-control" @oninput="ApplySearch" placeholder="Enter product name" />
+    <div class="mb-3 col-4">
+        <label for="search" class="form-label text-lowercase text-body-secondary m-0 ms-1">Search Products:</label>
+        <input id="search" class="form-control" @oninput="ApplySearch" placeholder="Try search" />
+    </div>
 </div>
-
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -61,7 +62,7 @@
         <button class="btn @(string.IsNullOrEmpty(sortOrder) ? "btn-primary" : "btn-outline-secondary")" @onclick="ClearSort">Clear Sort</button>
     </div>
 
-    <div class="pagination-controls mt-3">
+    <div class="pagination-controls">
         <button @onclick="PreviousPage" class="btn btn-secondary" disabled="@(!CanGoToPreviousPage)">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-left-fill" viewBox="0 0 16 16">
                 <path d="m3.86 8.753 5.482 4.796c.646.566 1.658.106 1.658-.753V3.204a1 1 0 0 0-1.659-.753l-5.48 4.796a1 1 0 0 0 0 1.506z" />

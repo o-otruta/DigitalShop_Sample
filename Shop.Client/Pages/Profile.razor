@@ -6,7 +6,15 @@
 
 <h3>Profile</h3>
 
-@if (isLoggedIn)
+@if (isLoading)
+{
+    <div class="text-center">
+        <div class="spinner-border mt-4 mb-4" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (isLoggedIn)
 {
     <p>Welcome, @LoggedInUser!</p>
 
@@ -32,10 +40,10 @@
     @if (showAddProductModal)
     {
         <AddProductModal NewProduct="newProduct"
-                         AvailableGames="availableGames"
-                         AvailableCategories="availableCategories"
-                         OnClose="CloseAddProductModal"
-                         OnSave="AddProduct" />
+        AvailableGames="availableGames"
+        AvailableCategories="availableCategories"
+        OnClose="CloseAddProductModal"
+        OnSave="AddProduct" />
     }
 }
 else
@@ -44,6 +52,7 @@ else
 }
 
 @code {
+    private bool isLoading = true;
     private bool isLoggedIn = false;
     private string LoggedInUser = string.Empty;
     private List<Product>? userProducts = null;
@@ -56,37 +65,28 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        isLoading = true;
+
         var token = await LocalStorage.GetItemAsync<string>("authToken");
 
-        if (string.IsNullOrEmpty(token))
-        {
-            isLoggedIn = false;
-        }
-        else
+        if (!string.IsNullOrEmpty(token))
         {
             Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            var response = await Http.GetAsync("api/protected");
 
+            var response = await Http.GetAsync("api/protected");
             if (response.IsSuccessStatusCode)
             {
                 LoggedInUser = await LocalStorage.GetItemAsync<string>("Username");
                 isLoggedIn = true;
 
-                var productsResponse = await Http.GetFromJsonAsync<List<Product>>("api/products/my-products");
-
-                if (productsResponse != null)
-                {
-                    userProducts = productsResponse;
-                }
-            }
-            else
-            {
-                isLoggedIn = false;
+                userProducts = await Http.GetFromJsonAsync<List<Product>>("api/products/my-products");
             }
         }
 
         availableGames = await Http.GetFromJsonAsync<List<Product>>("api/products/available-games");
         availableCategories = await Http.GetFromJsonAsync<List<string>>("api/products/available-categories");
+
+        isLoading = false; // Завершение загрузки
     }
 
     private async Task HandleLoginSuccess()
