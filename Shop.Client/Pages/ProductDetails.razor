@@ -111,9 +111,9 @@ else
             <p class="card-text"><strong>Created by:</strong> @product.created_by</p>
             <button @onclick="GoBack" class="btn btn-secondary">Back to Products</button>
 
-            @if(product?.created_by != currentUser)
+            @if (product?.created_by != currentUser && currentUser != null)
             {
-            <button class="btn btn-primary" @onclick="OpenPurchaseModal">Buy Now</button>
+            <button class="btn btn-primary ms-2" @onclick="OpenPurchaseModal">Buy Now</button>
             <OrderModal IsOpen="@isPurchaseModalOpen" Product="product" OnClose="ClosePurchaseModal" />
             }
 
