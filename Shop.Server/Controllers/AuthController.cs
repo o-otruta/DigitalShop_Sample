@@ -1,4 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿/// \file AuthController.cs
+/// \brief Contains controllers for user authentication and protected access.
+
+
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -11,6 +15,7 @@ using static System.Net.WebRequestMethods;
 
 namespace Shop.Server.Controllers
 {
+    /// \brief Handles user registration, login, and user info retrieval.
     [ApiController]
     [Route("api/auth")]
     public class AuthController : ControllerBase
@@ -18,12 +23,18 @@ namespace Shop.Server.Controllers
         private readonly UserService _userService;
         private readonly IConfiguration _configuration;
 
+        /// \brief Constructor for AuthController.
+        /// \param userService The service handling user-related logic.
+        /// \param configuration Application configuration for JWT.
         public AuthController(UserService userService, IConfiguration configuration)
         {
             _userService = userService;
             _configuration = configuration;
         }
 
+        /// \brief Registers a new user.
+        /// \param user User object containing username and password.
+        /// \return Success or error message.
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] User user)
         {
@@ -33,6 +44,9 @@ namespace Shop.Server.Controllers
             return BadRequest(new { Message = "Username already exists" });
         }
 
+        /// \brief Logs in an existing user and returns a JWT token.
+        /// \param user User object with login credentials.
+        /// \return JWT token and role, or error if login fails.
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] User user)
         {
@@ -44,6 +58,9 @@ namespace Shop.Server.Controllers
             return Ok(new { Token = token, Role = existingUser.role });
         }
 
+        /// \brief Generates a JWT token for the authenticated user.
+        /// \param user User for whom the token is generated.
+        /// \return Signed JWT token string.
         private string GenerateJwtToken(User user)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
@@ -65,6 +82,8 @@ namespace Shop.Server.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        /// \brief Retrieves authenticated user's information.
+        /// \return Username and role, or error if unauthorized.
         [HttpGet("user-info")]
         [Authorize]
         public IActionResult GetUserInfo()
@@ -79,16 +98,15 @@ namespace Shop.Server.Controllers
 
             return Ok(new { Username = username, Role = role });
         }
-
-
     }
 
-
-
+    /// \brief Controller for testing protected access with authentication.
     [ApiController]
     [Route("api/protected")]
     public class ProtectedController : ControllerBase
     {
+        /// \brief Returns data accessible only to authorized users.
+        /// \return Protected data message with username.
         [Authorize]
         [HttpGet]
         public IActionResult GetProtectedData()

@@ -1,17 +1,30 @@
-﻿using System;
+﻿/// \file LiqPayClient.cs
+/// \brief Contains configuration and logic for generating LiqPay payment URLs.
+
+
+using System;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
+/// \brief Configuration settings for LiqPay integration.
 public class LiqPaySettings
 {
+    /// \brief Public API key from LiqPay.
     public string PublicKey { get; set; } = string.Empty;
+
+    /// \brief Private API key from LiqPay.
     public string PrivateKey { get; set; } = string.Empty;
+
+    /// \brief URL to which users are redirected after payment.
     public string ReturnUrl { get; set; } = string.Empty;
+
+    /// \brief Default currency for transactions.
     public string Currency { get; set; } = "USD";
 }
 
+/// \brief Client for creating LiqPay payment requests and generating checkout URLs.
 public class LiqPayClient
 {
     private readonly string _publicKey;
@@ -21,6 +34,8 @@ public class LiqPayClient
     private readonly string _currency;
     private const string ApiUrl = "https://www.liqpay.ua/api/3/checkout";
 
+    /// \brief Constructor that initializes LiqPay client with settings.
+    /// \param liqPaySettings Injected configuration options.
     public LiqPayClient(IOptions<LiqPaySettings> liqPaySettings)
     {
         var settings = liqPaySettings.Value;
@@ -30,6 +45,12 @@ public class LiqPayClient
         _currency = settings.Currency;
     }
 
+    /// \brief Generates a LiqPay checkout URL with encoded payment data.
+    /// \param amount Amount to be paid.
+    /// \param currency Currency for the transaction (e.g., "USD").
+    /// \param description Description of the purchase.
+    /// \param orderId Unique identifier for the order.
+    /// \return A fully formed LiqPay payment URL.
     public string GeneratePaymentUrl(decimal amount, string currency, string description, string orderId)
     {
         var data = new
@@ -53,6 +74,9 @@ public class LiqPayClient
         return $"{ApiUrl}?data={encodedData}&signature={signature}";
     }
 
+    /// \brief Generates a Base64-encoded SHA1 signature for payment verification.
+    /// \param data Encoded data string.
+    /// \return Signature string for request authentication.
     private string GenerateSignature(string data)
     {
         string signatureString = $"{_privateKey}{data}{_privateKey}";

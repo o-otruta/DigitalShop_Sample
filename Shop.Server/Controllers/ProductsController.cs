@@ -1,21 +1,36 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿/// \file ProductsController.cs
+/// \brief Controller for managing products in the store.
+
+
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shop.Shared;
 using Shop.Server.Data;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
+/// \brief Handles API endpoints for product operations.
 [ApiController]
 [Route("api/products")]
 public class ProductsController : ControllerBase
 {
     private readonly AppDbContext _context;
 
+    /// \brief Constructor for ProductsController.
+    /// \param context The application's database context.
     public ProductsController(AppDbContext context)
     {
         _context = context;
     }
 
+    /// \brief Retrieves a paginated list of products with optional filters.
+    /// \param game_key Filter by game key.
+    /// \param category Filter by product category.
+    /// \param page Current page number.
+    /// \param pageSize Number of items per page.
+    /// \param sortOrder Sorting option (e.g., "lowest_price").
+    /// \param search Search keyword.
+    /// \return A paginated list of products.
     [HttpGet]
     public async Task<IActionResult> GetProducts(
         [FromQuery] string? game_key,
@@ -25,7 +40,6 @@ public class ProductsController : ControllerBase
         [FromQuery] string? sortOrder = null,
         [FromQuery] string? search = null)
     {
-        //var query = _context.Products.AsQueryable();
         var query = _context.Products.Where(p => p.quantity > 0);
 
         if (!string.IsNullOrEmpty(game_key))
@@ -72,7 +86,9 @@ public class ProductsController : ControllerBase
         });
     }
 
-
+    /// \brief Adds a new product to the store.
+    /// \param product Product object received from the client.
+    /// \return The created product or an error response.
     [HttpPost]
     [Authorize]
     public async Task<IActionResult> AddProduct([FromBody] Product product)
@@ -93,6 +109,10 @@ public class ProductsController : ControllerBase
         return CreatedAtAction(nameof(GetProducts), new { id = product.id }, product);
     }
 
+    /// \brief Updates an existing product by ID.
+    /// \param id Product ID.
+    /// \param updatedProduct Updated product data.
+    /// \return Updated product or error if not found or access denied.
     [HttpPut("{id}")]
     [Authorize]
     public async Task<IActionResult> UpdateProduct(int id, [FromBody] Product updatedProduct)
@@ -124,6 +144,9 @@ public class ProductsController : ControllerBase
         return Ok(product);
     }
 
+    /// \brief Deletes a product by ID.
+    /// \param id Product ID.
+    /// \return NoContent if deleted successfully, error otherwise.
     [HttpDelete("{id}")]
     [Authorize]
     public async Task<IActionResult> DeleteProduct(int id)
@@ -147,6 +170,9 @@ public class ProductsController : ControllerBase
         return NoContent();
     }
 
+    /// \brief Retrieves a product by its ID.
+    /// \param id Product ID.
+    /// \return Product object or NotFound if not found.
     [HttpGet("{id}")]
     public async Task<IActionResult> GetProductById(int id)
     {
@@ -159,6 +185,8 @@ public class ProductsController : ControllerBase
         return Ok(product);
     }
 
+    /// \brief Retrieves products created by the authenticated user.
+    /// \return List of the user's products.
     [HttpGet("my-products")]
     public async Task<IActionResult> GetMyProducts()
     {
@@ -176,6 +204,8 @@ public class ProductsController : ControllerBase
         return Ok(products);
     }
 
+    /// \brief Retrieves a list of all available games.
+    /// \return List of unique game names and keys.
     [HttpGet("available-games")]
     public async Task<IActionResult> GetGames()
     {
@@ -188,6 +218,9 @@ public class ProductsController : ControllerBase
         return Ok(games);
     }
 
+    /// \brief Retrieves categories for products, optionally filtered by game key.
+    /// \param game_key Optional game key to filter categories.
+    /// \return List of unique categories.
     [HttpGet("available-categories")]
     public async Task<IActionResult> GetCategories([FromQuery] string? game_key)
     {
@@ -207,6 +240,9 @@ public class ProductsController : ControllerBase
         return Ok(categories);
     }
 
+    /// \brief Retrieves the full name of a game by its key.
+    /// \param gameKey The key of the game.
+    /// \return Game name or NotFound if not found.
     [HttpGet("game-name/{gameKey}")]
     public async Task<IActionResult> GetGameName(string gameKey)
     {
@@ -222,5 +258,4 @@ public class ProductsController : ControllerBase
 
         return Ok(gameName);
     }
-
 }
