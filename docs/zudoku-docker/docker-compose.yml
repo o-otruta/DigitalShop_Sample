@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  zudoku-dev:
+    build: .
+    ports:
+      - "5173:5173"  # если вдруг будешь запускать превью
+    volumes:
+      - .:/workspace
+    tty: true
